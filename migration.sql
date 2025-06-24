@@ -1,8 +1,3 @@
-DROP TABLE IF EXISTS verification_tokens;
-DROP TABLE IF EXISTS sessions;
-DROP TABLE IF EXISTS accounts;
-DROP TABLE IF EXISTS users;
-
 CREATE TABLE IF NOT EXISTS "accounts" (
     "id" text NOT NULL,
     "userId" text NOT NULL DEFAULT NULL,
@@ -41,4 +36,14 @@ CREATE TABLE IF NOT EXISTS "verification_tokens" (
     "expires" datetime NOT NULL DEFAULT NULL, 
     PRIMARY KEY (token)
 );
+CREATE TABLE IF NOT EXISTS "audio" (
+    "id" TEXT PRIMARY KEY,
+    "text" TEXT,
+    "audio" BLOB,
+    "original_text" TEXT,
+    "miss_text" TEXT,
+    "chinese" TEXT,
+    "created_at" DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 

@@ -1,7 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  optimizeFonts: false, // 禁用字体优化
+  experimental: {
+    optimizePackageImports: ['@vercel/turbopack-next'],
+  },
 };
 
 export default nextConfig;
