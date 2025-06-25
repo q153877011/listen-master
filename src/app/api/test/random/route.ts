@@ -1,13 +1,8 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { NextResponse } from "next/server";
+import { AudioRecord } from '@/types/audio';
 
-interface AudioTest {
-  id: string;
-  audio_path: string;
-  miss_text: string | null;
-  original_text: string | null;
-  chinese: string | null;
-}
+type AudioTest = Pick<AudioRecord, 'id' | 'audio_path' | 'miss_text' | 'original_text' | 'chinese'>;
 
 export async function GET() {
   try {

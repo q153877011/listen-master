@@ -2,20 +2,7 @@ import React from 'react';
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { AudioRecord, AudioResult } from '@/types/audio';
 
-interface AudioFile {
-  id: string;
-  text: string | null;
-  audio_path: string;
-  file_size: number;
-  folder_name: string;
-  file_name: string;
-  miss_text: string | null;
-  chinese: string | null;
-  original_text: string | null;
-  created_at: string;
-}
-
-async function getAudioFiles(): Promise<AudioFile[]> {
+async function getAudioFiles(): Promise<AudioResult[]> {
   const db = (await getCloudflareContext({ async: true })).env.DB;
   const { results } = await db.prepare(`
     SELECT 
@@ -23,9 +10,9 @@ async function getAudioFiles(): Promise<AudioFile[]> {
       miss_text, chinese, original_text, created_at
     FROM audio
     ORDER BY created_at DESC
-  `).all<AudioFile>();
+  `).all<AudioRecord>();
 
-  return results.map((result: AudioFile): AudioResult => ({
+  return results.map((result: AudioRecord): AudioResult => ({
     id: String(result.id),
     text: result.text,
     audio_path: String(result.audio_path),
@@ -46,7 +33,7 @@ export default async function AudioPage() {
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-6">音频文件列表</h1>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {files.map((file: AudioFile) => (
+        {files.map((file: AudioResult) => (
           <div key={file.id} className="border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between mb-2">
               <h2 className="text-lg font-semibold">{file.file_name}</h2>
