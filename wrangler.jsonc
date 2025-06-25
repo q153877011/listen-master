@@ -19,12 +19,12 @@
 		"enabled": true
 	},
 	"d1_databases": [
-    {
-      "binding": "DB",
-      "database_name": "auth-js-d1-example-db",
-      "database_id": "5eeaf293-6ead-4c88-8d80-3a8478b0d253"
-    }
-  ]
+		{
+			"binding": "DB",
+			"database_name": "auth-js-d1-example-db",
+			"database_id": "5eeaf293-6ead-4c88-8d80-3a8478b0d253"
+		}
+	]
 	/**
 	 * Smart Placement
 	 * Docs: https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement
