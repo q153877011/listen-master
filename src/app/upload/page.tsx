@@ -241,10 +241,10 @@ export default function UploadPage() {
             id="folder"
             name="folder"
             onChange={handleFileChange}
-            // @ts-expect-error
-            webkitdirectory=""
-            // @ts-expect-error
-            directory=""
+            {...{
+              webkitdirectory: "",
+              directory: ""
+            }}
             multiple
             className="block w-full text-sm text-gray-500
               file:mr-4 file:py-2 file:px-4

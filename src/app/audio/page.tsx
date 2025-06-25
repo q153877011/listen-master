@@ -1,5 +1,6 @@
 import React from 'react';
 import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { AudioRecord, AudioResult } from '@/types/audio';
 
 interface AudioFile {
   id: string;
@@ -22,9 +23,9 @@ async function getAudioFiles(): Promise<AudioFile[]> {
       miss_text, chinese, original_text, created_at
     FROM audio
     ORDER BY created_at DESC
-  `).all();
+  `).all<AudioFile>();
 
-  return results.map((result: any) => ({
+  return results.map((result: AudioFile): AudioResult => ({
     id: String(result.id),
     text: result.text,
     audio_path: String(result.audio_path),
@@ -87,9 +88,9 @@ export default async function AudioPage() {
 }
 
 function formatFileSize(bytes: number): string {
-  if (bytes === 0) return '0 B';
+  if (bytes === 0) return '0 Bytes';
   const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
