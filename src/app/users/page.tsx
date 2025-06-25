@@ -1,10 +1,11 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import React from "react";
+import { User } from "@/types/user";
 
-async function getAllUsers() {
+async function getAllUsers(): Promise<User[]> {
   const db = (await getCloudflareContext({ async: true })).env.DB;
-  const { results } = await db.prepare("SELECT * FROM users").all();
-  return results as any[];
+  const { results } = await db.prepare("SELECT * FROM users").all<User>();
+  return results;
 }
 
 export default async function UsersPage() {
