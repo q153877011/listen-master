@@ -8,6 +8,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Label } from '@/components/ui/label';
 
+// 将页面标记为动态渲染
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 async function updateName(formData: FormData): Promise<void> {
   'use server';
   const session = await auth();

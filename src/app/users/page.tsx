@@ -2,6 +2,10 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import React from "react";
 import { User } from "@/types/user";
 
+// 将页面标记为动态渲染
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 async function getAllUsers(): Promise<User[]> {
   const db = (await getCloudflareContext({ async: true })).env.DB;
   const { results } = await db.prepare("SELECT * FROM users").all<User>();
