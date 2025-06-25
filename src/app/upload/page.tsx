@@ -81,7 +81,6 @@ export default function UploadPage() {
     const fileList = e.target.files;
     if (!fileList) return;
 
-    let chineseList: {id: string, content: string}[] = [], textList: {id: string, content: string}[] = [], missTextList: {id: string, content: string}[] = [];
     Array.from(fileList)
     .filter(file => file.name.toLowerCase().endsWith('.txt'))
     .map(file => {
@@ -242,9 +241,9 @@ export default function UploadPage() {
             id="folder"
             name="folder"
             onChange={handleFileChange}
-            // @ts-ignore
+            // @ts-expect-error
             webkitdirectory=""
-            // @ts-ignore
+            // @ts-expect-error
             directory=""
             multiple
             className="block w-full text-sm text-gray-500
