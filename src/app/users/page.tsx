@@ -25,6 +25,8 @@ export default async function UsersPage() {
             <th className="border px-4 py-2">姓名</th>
             <th className="border px-4 py-2">邮箱</th>
             <th className="border px-4 py-2">头像</th>
+            <th className="border px-4 py-2">角色</th>
+            <th className="border px-4 py-2">密码（加盐后）</th>
           </tr>
         </thead>
         <tbody>
@@ -38,6 +40,8 @@ export default async function UsersPage() {
                   <img src={user.image} alt="avatar" className="w-8 h-8 rounded-full" />
                 )}
               </td>
+              <td className="border px-4 py-2">{user.role || '-'}</td>
+              <td className="border px-4 py-2">{user.password ? <span className="break-all">{user.password}</span> : '-'}</td>
             </tr>
           ))}
         </tbody>

@@ -24,7 +24,16 @@
 			"database_name": "auth-js-d1-example-db",
 			"database_id": "5eeaf293-6ead-4c88-8d80-3a8478b0d253"
 		}
-	]
+	],
+	// "route": {
+	// 	"pattern": "*",
+	// 	"custom_domain": true
+	// },
+	"env": {
+		"AUTH_SECRET": "",
+		"AUTH_RESEND_KEY": "",
+		"AUTH_EMAIL_FROM": ""
+	}
 	/**
 	 * Smart Placement
 	 * Docs: https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement

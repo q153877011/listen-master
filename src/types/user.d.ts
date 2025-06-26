@@ -6,4 +6,6 @@ export interface User {
   emailVerified?: Date | null;
   created_at?: string;
   updated_at?: string;
+  password?: string | null;
+  role?: string | null;
 } 

@@ -13,7 +13,7 @@ interface AudioTest {
   chinese: string;
 }
 
-export default function TestPage() {
+export default function TestComponent() {
   const [currentTest, setCurrentTest] = useState<AudioTest | null>(null);
   const [userInputs, setUserInputs] = useState<string[]>([]);
   const [showResults, setShowResults] = useState(false);
@@ -199,34 +199,32 @@ export default function TestPage() {
 
   if (!isStarted) {
     return (
-      <main className="container mx-auto px-4 py-8">
-        <div className="max-w-2xl mx-auto text-center space-y-6">
-          <h1 className="text-3xl font-bold mb-6">听力测试</h1>
-          <Card className="p-6">
-            <p className="mb-4">准备好开始听力测试了吗？</p>
-            <p className="text-sm text-gray-600 mb-6">
-              点击开始后，将会播放音频。请仔细听并填写缺失的单词。
-              你可以：
-            </p>
-            <ul className="text-sm text-gray-600 text-left list-disc list-inside mb-6">
-              <li>重复播放音频</li>
-              <li>使用回车键快速切换输入框</li>
-              <li>查看中文翻译辅助理解</li>
-              <li>提交答案后查看正确结果</li>
-            </ul>
-            <Button onClick={startTest} size="lg">
-              开始测试
-            </Button>
-          </Card>
-        </div>
-      </main>
+      <div className="max-w-2xl mx-auto text-center space-y-6">
+        <h1 className="text-3xl font-bold mb-6">听力测试</h1>
+        <Card className="p-6">
+          <p className="mb-4">准备好开始听力测试了吗？</p>
+          <p className="text-sm text-gray-600 mb-6">
+            点击开始后，将会播放音频。请仔细听并填写缺失的单词。
+            你可以：
+          </p>
+          <ul className="text-sm text-gray-600 text-left list-disc list-inside mb-6">
+            <li>重复播放音频</li>
+            <li>使用回车键快速切换输入框</li>
+            <li>查看中文翻译辅助理解</li>
+            <li>提交答案后查看正确结果</li>
+          </ul>
+          <Button onClick={startTest} size="lg">
+            开始测试
+          </Button>
+        </Card>
+      </div>
     );
   }
 
   return (
-    <main className="container mx-auto px-4 py-8">
+    <div className="space-y-6">
       <h1 className="text-2xl font-bold mb-6">听力测试</h1>
       {renderTest()}
-    </main>
+    </div>
   );
 } 

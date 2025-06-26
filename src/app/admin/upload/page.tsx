@@ -3,6 +3,7 @@
 import React, { useState, useRef } from 'react';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { Button } from 'tdesign-react/lib/'; // 按需引入无样式组件代码
 
 interface FileInfo {
   name: string;
@@ -301,29 +302,25 @@ export default function UploadPage() {
           </div>
         )}
 
-        <button
-          type="submit"
-          disabled={uploading || files.length === 0}
-          className={`mt-4 px-4 py-2 rounded text-white transition-colors ${
-            uploading || files.length === 0
-              ? 'bg-gray-400 cursor-not-allowed'
-              : 'bg-blue-500 hover:bg-blue-600'
-          }`}
-        >
-          {uploading ? '上传中...' : '上传'}
-        </button>
+        <div className="flex gap-4 mt-4">
+          <Button
+            type="submit"
+            theme="primary"
+            disabled={uploading || files.length === 0}
+            loading={uploading}
+          >
+            {uploading ? '上传中...' : '上传'}
+          </Button>
 
-        <button
-          disabled={uploading || files.length === 0}
-          className={`mt-4 px-4 py-2 rounded text-white transition-colors ${
-            uploading || files.length === 0
-              ? 'bg-gray-400 cursor-not-allowed'
-              : 'bg-blue-500 hover:bg-blue-600'
-          }`}
-          onClick={handleUpload}
-        >
-          解析文本
-        </button>
+          <Button
+            theme="primary"
+            variant="outline"
+            disabled={uploading || files.length === 0}
+            onClick={handleUpload}
+          >
+            解析文本
+          </Button>
+        </div>
       </form>
       
       {status && (

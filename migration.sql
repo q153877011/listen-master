@@ -27,7 +27,12 @@ CREATE TABLE IF NOT EXISTS "users" (
     "name" text DEFAULT NULL,
     "email" text DEFAULT NULL,
     "emailVerified" datetime DEFAULT NULL,
-    "image" text DEFAULT NULL, 
+    "image" text DEFAULT NULL,
+    "password" text DEFAULT NULL,
+    "role" text DEFAULT 'user',
+    "email_verified" INTEGER DEFAULT 0,
+    "verification_token" text DEFAULT NULL,
+    "verification_token_expires" datetime DEFAULT NULL,
     PRIMARY KEY (id)
 );
 CREATE TABLE IF NOT EXISTS "verification_tokens" (
@@ -43,7 +48,11 @@ CREATE TABLE IF NOT EXISTS "audio" (
     "original_text" TEXT,
     "miss_text" TEXT,
     "chinese" TEXT,
-    "created_at" DATETIME DEFAULT CURRENT_TIMESTAMP
+    "created_at" DATETIME DEFAULT CURRENT_TIMESTAMP,
+    "audio_path" TEXT,
+    "file_size" INTEGER,
+    "folder_name" TEXT,
+    "file_name" TEXT
 );
 
 
