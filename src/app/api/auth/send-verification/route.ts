@@ -3,10 +3,6 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import crypto from 'crypto';
 import { getOriginFromRequest } from "@/lib/url-utils";
 
-interface VerificationRequest {
-  email: string;
-}
-
 interface VerificationResponse {
   success: boolean;
   message: string;

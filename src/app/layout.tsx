@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import UserAvatar from "@/components/UserAvatar";
 import AuthProvider from "@/components/AuthProvider";
+import Link from "next/link";
 import 'tdesign-react/dist/tdesign.css'; // 全局引入所有组件样式代码
 
 
@@ -33,18 +34,18 @@ function Navigation() {
           
           {/* 中间导航链接 */}
           <div className="flex space-x-4">
-            <a href="/" className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
+            <Link href="/" className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
               首页
-            </a>
-            <a href="/" className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
+            </Link>
+            <Link href="/" className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
               测试
-            </a>
-            <a href="/admin/users" className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
+            </Link>
+            <Link href="/users" className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
               用户
-            </a>
-            <a href="/admin/upload" className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
+            </Link>
+            <Link href="/admin/upload" className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
               上传
-            </a>
+            </Link>
           </div>
 
           {/* 右侧图标和用户头像 */}
