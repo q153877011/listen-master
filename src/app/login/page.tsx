@@ -53,37 +53,28 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
+      // 直接使用 NextAuth 进行认证
+      const result = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+        callbackUrl: "/"
       });
-
-      const data: LoginResponse = await response.json();
-
-      if (data.success) {
+      
+      if (result?.ok) {
         setSuccess("登录成功，正在跳转...");
-        // 使用 NextAuth 创建会话
-        const result = await signIn("credentials", {
-          email,
-          password,
-          redirect: false,
-          callbackUrl: "/"
-        });
-        
-        if (result?.ok) {
-          router.push("/");
+        router.push("/");
+      } else if (result?.error) {
+        // 检查是否是邮箱未验证的问题
+        if (result.error === "EmailNotVerified") {
+          setNeedsVerification(true);
+          setUnverifiedEmail(email);
+          setError("邮箱未验证，请先验证您的邮箱");
         } else {
-          setError("登录成功，但创建会话失败");
+          setError("登录失败，请检查邮箱和密码");
         }
       } else {
-        if (data.needsVerification) {
-          setNeedsVerification(true);
-          setUnverifiedEmail(data.email || email);
-        }
-        setError(data.message);
+        setError("登录失败，请稍后再试");
       }
     } catch (error) {
       console.error("登录错误:", error);

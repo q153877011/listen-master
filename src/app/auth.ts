@@ -265,6 +265,11 @@ const authResult = async (): Promise<NextAuthResult> => {
               return null;
             }
 
+            // 检查邮箱是否已验证
+            if (user.email_verified !== 1) {
+              throw new Error("EmailNotVerified");
+            }
+
             // 返回用户信息（NextAuth 格式）
             return {
               id: user.id,
@@ -273,6 +278,9 @@ const authResult = async (): Promise<NextAuthResult> => {
               image: user.image || null,
             };
           } catch (error) {
+            if (error instanceof Error && error.message === "EmailNotVerified") {
+              throw error;
+            }
             console.error("Credentials auth error:", error);
             return null;
           }
@@ -281,26 +289,51 @@ const authResult = async (): Promise<NextAuthResult> => {
     ],
     adapter: D1Adapter(context.env.DB),
     session: {
-      strategy: "jwt"
+      strategy: "jwt",
+      maxAge: 30 * 24 * 60 * 60, // 30 days
+    },
+    jwt: {
+      maxAge: 30 * 24 * 60 * 60, // 30 days
+    },
+    cookies: {
+      sessionToken: {
+        name: `next-auth.session-token`,
+        options: {
+          httpOnly: true,
+          sameSite: 'lax',
+          path: '/',
+          secure: true
+        }
+      }
     },
     callbacks: {
       async jwt({ token, user }) {
         if (user) {
           token.id = user.id;
+          token.email = user.email;
+          token.name = user.name;
         }
         return token;
       },
       async session({ session, token }) {
         if (token) {
           session.user.id = token.id as string;
+          session.user.email = token.email as string;
+          session.user.name = token.name as string;
         }
         return session;
+      },
+      async signIn({ user, account, profile }) {
+        // 允许所有已通过 authorize 验证的用户登录
+        return true;
       }
     },
     pages: {
       signIn: "/login",
       error: "/login",
-    }
+    },
+    debug: process.env.NODE_ENV === "development",
+    trustHost: true
   });
 };
 
