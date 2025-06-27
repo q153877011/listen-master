@@ -6,6 +6,31 @@ import Credentials from "next-auth/providers/credentials";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import bcrypt from "bcryptjs";
 
+// Database user interface for authentication
+interface DatabaseUserForAuth {
+  id: string;
+  email: string;
+  name: string;
+  password: string;
+  image?: string | null;
+  role?: string;
+  email_verified?: number;
+}
+
+// Type guard function to validate database user structure
+function isDatabaseUserForAuth(obj: unknown): obj is DatabaseUserForAuth {
+  if (!obj || typeof obj !== 'object') return false;
+  
+  const user = obj as Record<string, unknown>;
+  
+  return (
+    typeof user.id === 'string' &&
+    typeof user.email === 'string' &&
+    typeof user.name === 'string' &&
+    typeof user.password === 'string'
+  );
+}
+
 const authResult = async (): Promise<NextAuthResult> => {
   const context = await getCloudflareContext({async: true});
   
@@ -223,14 +248,18 @@ const authResult = async (): Promise<NextAuthResult> => {
               return null;
             }
 
-            const user = results[0] as any;
+            const userFromDb = results[0];
 
-            // 验证密码
-            if (!user.password || typeof user.password !== 'string') {
+            // Validate user data structure
+            if (!isDatabaseUserForAuth(userFromDb)) {
+              console.error('Invalid user data structure from database');
               return null;
             }
 
-            const isPasswordValid = await bcrypt.compare(String(credentials.password), String(user.password));
+            const user: DatabaseUserForAuth = userFromDb;
+
+            // 验证密码
+            const isPasswordValid = await bcrypt.compare(String(credentials.password), user.password);
 
             if (!isPasswordValid) {
               return null;
@@ -241,7 +270,7 @@ const authResult = async (): Promise<NextAuthResult> => {
               id: user.id,
               email: user.email,
               name: user.name,
-              image: user.image,
+              image: user.image || null,
             };
           } catch (error) {
             console.error("Credentials auth error:", error);

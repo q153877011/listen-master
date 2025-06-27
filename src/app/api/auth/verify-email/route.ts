@@ -2,15 +2,52 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { getOriginFromRequest } from "@/lib/url-utils";
 
+interface VerifyEmailResponse {
+  success: boolean;
+  message: string;
+}
+
+// Database user type for email verification - only the fields we need
+interface DatabaseUserForEmailVerification {
+  id: string;
+  email: string;
+  verification_token: string | null;
+  verification_token_expires: string | null;
+  email_verified: number; // SQLite stores booleans as integers
+}
+
+// Type guard to validate database user result
+function isDatabaseUserForEmailVerification(obj: unknown): obj is DatabaseUserForEmailVerification {
+  if (!obj || typeof obj !== 'object') return false;
+  
+  const user = obj as Record<string, unknown>;
+  
+  return (
+    typeof user.id === 'string' &&
+    typeof user.email === 'string' &&
+    (user.verification_token === null || typeof user.verification_token === 'string') &&
+    (user.verification_token_expires === null || typeof user.verification_token_expires === 'string') &&
+    typeof user.email_verified === 'number'
+  );
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { env } = await getCloudflareContext({ async: true });
     const { searchParams } = new URL(request.url);
     const token = searchParams.get('token');
 
+    // Validate token parameter
     if (!token) {
-      return NextResponse.json(
+      return NextResponse.json<VerifyEmailResponse>(
         { success: false, message: "验证令牌缺失" },
+        { status: 400 }
+      );
+    }
+
+    if (typeof token !== 'string' || token.trim().length === 0) {
+      return NextResponse.json<VerifyEmailResponse>(
+        { success: false, message: "验证令牌格式无效" },
         { status: 400 }
       );
     }
@@ -30,13 +67,23 @@ export async function GET(request: NextRequest) {
     console.log('Query results:', results);
 
     if (results.length === 0) {
-      return NextResponse.json(
+      return NextResponse.json<VerifyEmailResponse>(
         { success: false, message: "验证令牌无效" },
         { status: 400 }
       );
     }
 
-    const user = results[0] as any;
+    // Validate the database result
+    const userResult = results[0];
+    if (!isDatabaseUserForEmailVerification(userResult)) {
+      console.error("Invalid user data from database:", userResult);
+      return NextResponse.json<VerifyEmailResponse>(
+        { success: false, message: "用户数据格式错误" },
+        { status: 500 }
+      );
+    }
+
+    const user: DatabaseUserForEmailVerification = userResult;
     console.log('Found user:', { 
       id: user.id, 
       email: user.email, 
@@ -45,16 +92,29 @@ export async function GET(request: NextRequest) {
     });
 
     // 检查令牌是否过期
-    if (user.verification_token_expires && new Date(user.verification_token_expires) < new Date()) {
-      return NextResponse.json(
-        { success: false, message: "验证令牌已过期，请重新申请验证邮件" },
-        { status: 400 }
-      );
+    if (user.verification_token_expires) {
+      const expiresDate = new Date(user.verification_token_expires);
+      const now = new Date();
+      
+      if (isNaN(expiresDate.getTime())) {
+        console.error("Invalid expiration date format:", user.verification_token_expires);
+        return NextResponse.json<VerifyEmailResponse>(
+          { success: false, message: "验证令牌数据格式错误" },
+          { status: 500 }
+        );
+      }
+      
+      if (expiresDate < now) {
+        return NextResponse.json<VerifyEmailResponse>(
+          { success: false, message: "验证令牌已过期，请重新申请验证邮件" },
+          { status: 400 }
+        );
+      }
     }
 
     // 检查是否已经验证过
     if (user.email_verified === 1) {
-      return NextResponse.json(
+      return NextResponse.json<VerifyEmailResponse>(
         { success: false, message: "邮箱已经验证过了" },
         { status: 400 }
       );
@@ -73,10 +133,9 @@ export async function GET(request: NextRequest) {
       .bind(user.id)
       .run();
 
-    // 重定向到登录页面
+    // 返回带有延迟跳转的HTML页面
     const origin = getOriginFromRequest(request);
     
-    // 返回带有延迟跳转的HTML页面
     const html = `
     <!DOCTYPE html>
     <html lang="zh-CN">
@@ -201,7 +260,7 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error("邮箱验证错误:", error);
-    return NextResponse.json(
+    return NextResponse.json<VerifyEmailResponse>(
       { success: false, message: "验证失败，请稍后重试" },
       { status: 500 }
     );

@@ -7,17 +7,72 @@ interface VerificationRequest {
   email: string;
 }
 
+interface VerificationResponse {
+  success: boolean;
+  message: string;
+}
+
+// Database user type for verification - only the fields we need
+interface DatabaseUserForVerification {
+  id: string;
+  name: string | null;
+  email: string;
+  email_verified: number; // SQLite stores booleans as integers
+}
+
+// Type guard to validate database user result
+function isDatabaseUserForVerification(obj: unknown): obj is DatabaseUserForVerification {
+  if (!obj || typeof obj !== 'object') return false;
+  
+  const user = obj as Record<string, unknown>;
+  
+  return (
+    typeof user.id === 'string' &&
+    (user.name === null || typeof user.name === 'string') &&
+    typeof user.email === 'string' &&
+    typeof user.email_verified === 'number'
+  );
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const { env } = await getCloudflareContext({ async: true });
-    const { email }: VerificationRequest = await request.json();
+    const body = await request.json();
+    
+    // Validate request body structure
+    if (!body || typeof body !== 'object') {
+      return NextResponse.json<VerificationResponse>(
+        { success: false, message: "请求数据格式错误" },
+        { status: 400 }
+      );
+    }
 
+    const { email } = body as { email?: unknown };
+
+    // Validate email field
     if (!email) {
-      return NextResponse.json(
+      return NextResponse.json<VerificationResponse>(
         { success: false, message: "邮箱地址不能为空" },
         { status: 400 }
       );
     }
+
+    if (typeof email !== 'string') {
+      return NextResponse.json<VerificationResponse>(
+        { success: false, message: "邮箱地址必须是字符串" },
+        { status: 400 }
+      );
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return NextResponse.json<VerificationResponse>(
+        { success: false, message: "邮箱格式不正确" },
+        { status: 400 }
+      );
+    }
+
+    const { env } = await getCloudflareContext({ async: true });
 
     // 查找用户
     const { results } = await env.DB
@@ -26,16 +81,26 @@ export async function POST(request: NextRequest) {
       .all();
 
     if (results.length === 0) {
-      return NextResponse.json(
+      return NextResponse.json<VerificationResponse>(
         { success: false, message: "用户不存在" },
         { status: 404 }
       );
     }
 
-    const user = results[0] as any;
+    // Validate the database result
+    const userResult = results[0];
+    if (!isDatabaseUserForVerification(userResult)) {
+      console.error("Invalid user data from database:", userResult);
+      return NextResponse.json<VerificationResponse>(
+        { success: false, message: "用户数据格式错误" },
+        { status: 500 }
+      );
+    }
+
+    const user: DatabaseUserForVerification = userResult;
 
     if (user.email_verified === 1) {
-      return NextResponse.json(
+      return NextResponse.json<VerificationResponse>(
         { success: false, message: "邮箱已经验证过了" },
         { status: 400 }
       );
@@ -67,7 +132,7 @@ export async function POST(request: NextRequest) {
       html: `
         <div style="max-width: 600px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif;">
           <h2 style="color: #333; text-align: center;">验证您的邮箱地址</h2>
-          <p>您好 ${user.name}，</p>
+          <p>您好 ${user.name || '用户'}，</p>
           <p>感谢您注册 listen-master 的服务！请点击下面的链接来验证您的邮箱地址：</p>
           <div style="text-align: center; margin: 30px 0;">
             <a href="${verificationUrl}" 
@@ -97,17 +162,19 @@ export async function POST(request: NextRequest) {
     });
 
     if (!emailResponse.ok) {
+      const errorText = await emailResponse.text();
+      console.error('Failed to send verification email:', errorText);
       throw new Error('Failed to send email');
     }
 
-    return NextResponse.json({
+    return NextResponse.json<VerificationResponse>({
       success: true,
       message: "验证邮件已发送，请查收您的邮箱"
     });
 
   } catch (error) {
     console.error("发送验证邮件错误:", error);
-    return NextResponse.json(
+    return NextResponse.json<VerificationResponse>(
       { success: false, message: "发送验证邮件失败，请稍后重试" },
       { status: 500 }
     );

@@ -69,6 +69,7 @@ export default function VerifyEmailPage() {
       } catch (error) {
         setStatus("error");
         setMessage("验证失败，请稍后重试");
+        console.error(error);
       }
     };
 
