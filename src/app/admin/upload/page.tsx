@@ -18,13 +18,11 @@ interface UploadResponse {
   success: boolean;
   message: string;
   results: Array<{
-    id: string;
-    filename: string;
-    folder: string;
-    size: number;
-    hasText: boolean;
-    hasChinese: boolean;
-    hasMissText: boolean;
+    success: boolean;
+    file: string;
+    id?: string;
+    url?: string;
+    error?: string;
   }>;
 }
 
@@ -37,6 +35,14 @@ export default function UploadPage() {
   const [textList, setTextList] = useState<{id: string, content: string}[]>([]);
   const [chineseList, setChineseList] = useState<{id: string, content: string}[]>([]);
   const [missTextList, setMissTextList] = useState<{id: string, content: string}[]>([]);
+  const [uploadProgress, setUploadProgress] = useState<{current: number, total: number}>({current: 0, total: 0});
+  const [uploadResults, setUploadResults] = useState<Array<{
+    success: boolean;
+    file: string;
+    id?: string;
+    url?: string;
+    error?: string;
+  }>>([]);
 
   function formatFileSize(bytes: number): string {
     if (bytes === 0) return '0 Bytes';
@@ -135,6 +141,8 @@ export default function UploadPage() {
 
     try {
       setUploading(true);
+      setUploadProgress({current: 0, total: files.length});
+      setUploadResults([]);
       const formData = new FormData();
 
       // 添加音频文件
@@ -180,17 +188,26 @@ export default function UploadPage() {
         throw new Error(result.message || '上传失败');
       }
 
-      toast.success(`成功上传 ${result.results.length} 个文件`);
+      // 更新上传结果
+      setUploadResults(result.results);
+      setUploadProgress({current: result.results.length, total: files.length});
+
+      const successCount = result.results.filter(r => r.success).length;
+      toast.success(`成功上传 ${successCount} 个文件到 COS`);
+      console.log('上传结果:', result);
+      
+      // 清空文件列表
       setFiles([]);
       setTextList([]);
       setChineseList([]);
       setMissTextList([]);
-    } catch (error) {
-      console.error('Upload error:', error);
-      toast.error(error instanceof Error ? error.message : '上传失败');
-    } finally {
-      setUploading(false);
-    }
+          } catch (error) {
+        console.error('Upload error:', error);
+        toast.error(error instanceof Error ? error.message : '上传失败');
+        setUploadProgress({current: 0, total: 0});
+      } finally {
+        setUploading(false);
+      }
   };
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -321,6 +338,103 @@ export default function UploadPage() {
             解析文本
           </Button>
         </div>
+
+        {/* 上传进度显示 */}
+        {uploading && uploadProgress.total > 0 && (
+          <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-sm font-medium text-blue-700">
+                上传进度: {uploadProgress.current}/{uploadProgress.total}
+              </span>
+              <span className="text-sm text-blue-600">
+                {Math.round((uploadProgress.current / uploadProgress.total) * 100)}%
+              </span>
+            </div>
+            <div className="w-full bg-blue-200 rounded-full h-2">
+              <div 
+                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                style={{ width: `${(uploadProgress.current / uploadProgress.total) * 100}%` }}
+              ></div>
+            </div>
+          </div>
+        )}
+
+        {/* 上传结果显示 */}
+        {uploadResults.length > 0 && (
+          <div className="mt-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold">上传结果 ({uploadResults.length})</h2>
+              <Button
+                theme="primary"
+                variant="outline"
+                onClick={() => setUploadResults([])}
+              >
+                清除结果
+              </Button>
+            </div>
+            <div className="space-y-3">
+              {uploadResults.map((result, index) => (
+                <div 
+                  key={index} 
+                  className={`p-4 rounded-lg border ${
+                    result.success 
+                      ? 'bg-green-50 border-green-200' 
+                      : 'bg-red-50 border-red-200'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <h3 className={`font-medium ${
+                        result.success ? 'text-green-800' : 'text-red-800'
+                      }`}>
+                        {result.file}
+                      </h3>
+                      {result.success && result.url && (
+                        <div className="mt-2">
+                          <p className="text-sm text-green-600 mb-1">COS URL:</p>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              value={result.url}
+                              readOnly
+                              className="flex-1 text-xs p-2 bg-white border border-green-300 rounded"
+                            />
+                            <Button
+                              theme="primary"
+                              variant="outline"
+                              onClick={() => {
+                                navigator.clipboard.writeText(result.url!);
+                                toast.success('URL 已复制到剪贴板');
+                              }}
+                            >
+                              复制
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                      {!result.success && result.error && (
+                        <p className="text-sm text-red-600 mt-1">
+                          错误: {result.error}
+                        </p>
+                      )}
+                    </div>
+                    <div className="ml-4">
+                      {result.success ? (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          成功
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                          失败
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </form>
       
       {status && (

@@ -50,7 +50,7 @@ export default function UserAvatar({ user }: UserAvatarProps) {
       // 使用 NextAuth 的 signOut 函数
       await signOut({
         redirect: true,
-        callbackUrl: '/login' // 注销后跳转到登录页
+        callbackUrl: '/users/login' // 注销后跳转到登录页
       });
     } catch (error) {
       console.error('注销失败:', error);
@@ -62,7 +62,7 @@ export default function UserAvatar({ user }: UserAvatarProps) {
           sessionStorage.clear();
           
           // 手动跳转到登录页
-          window.location.href = '/login';
+          window.location.href = '/users/login';
         }
       } catch (fallbackError) {
         console.error('手动注销也失败:', fallbackError);
@@ -90,7 +90,7 @@ export default function UserAvatar({ user }: UserAvatarProps) {
     return (
       <div className="flex items-center space-x-2">
         <a
-          href="/login"
+          href="/users/login"
           className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium transition-colors"
         >
           登录

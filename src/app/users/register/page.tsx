@@ -36,11 +36,20 @@ export default function RegisterPage() {
       if (!res.ok) {
         setError(data.message || "注册失败");
       } else {
-        setSuccess(data.message || "注册成功，请登录邮箱验证或直接登录。");
+        setSuccess(data.message || "注册成功，2秒后自动跳转到登录页面...");
         
         if (data.needsVerification) {
           setNeedsVerification(true);
           setRegisteredEmail(email);
+        } else {
+          // 注册成功，2秒后跳转到登录页面
+          setTimeout(() => {
+            const params = new URLSearchParams({
+              email: email,
+              password: password
+            });
+            window.location.href = `/users/login?${params.toString()}`;
+          }, 2000);
         }
         
         setName("");

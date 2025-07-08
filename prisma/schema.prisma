@@ -1,0 +1,80 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id                    String    @id @default(cuid())
+  name                  String?
+  email                 String?   @unique
+  emailVerified         DateTime?
+  image                 String?
+  password              String?
+  role                  String?   @default("user")
+  verification_token    String?
+  verification_expires  DateTime?
+  accounts              Account[]
+  sessions             Session[]
+  activities           UserActivity[]
+  created_at           DateTime  @default(now())
+  updated_at           DateTime  @updatedAt
+}
+
+model Audio {
+  id            String   @id
+  text          String?  @db.Text
+  audio_path    String
+  file_size     BigInt
+  folder_name   String
+  file_name     String
+  miss_text     String?  @db.Text
+  chinese       String?  @db.Text
+  original_text String?  @db.Text
+  created_at    DateTime @default(now())
+  activities    UserActivity[]
+}
+
+model UserActivity {
+  id              String   @id @default(cuid())
+  userId          String
+  audioId         String
+  isCorrect       Boolean
+  userAnswer      String?  @db.Text
+  correctAnswer   String?  @db.Text
+  completedAt     DateTime?
+  timeSpent       Int?     // 完成时间（秒）
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  audio           Audio    @relation(fields: [audioId], references: [id], onDelete: Cascade)
+  created_at      DateTime @default(now())
+} 
