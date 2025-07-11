@@ -28,11 +28,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
 
         try {
-          const user = await prisma.user.findUnique({
-            where: {
-              email: credentials.email,
-            },
-          });
+                  const user = await prisma.user.findUnique({
+          where: {
+            email: credentials.email as string,
+          },
+        });
 
           if (!user || !user.password) {
             return null;
@@ -51,13 +51,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             throw new Error("EmailNotVerified");
           }
 
-          return {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            image: user.image,
-            role: user.role,
-          };
+                  return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          image: user.image,
+          role: user.role,
+        } as any;
         } catch (error) {
           if (error instanceof Error && error.message === "EmailNotVerified") {
             throw error;
@@ -72,12 +72,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async jwt({ token, user }) {
       if (user) {
         token.role = user.role;
+        token.id = user.id;
       }
       return token;
     },
     async session({ session, token }) {
       if (session?.user) {
         session.user.role = token.role as string | null | undefined;
+        session.user.id = token.id as string;
       }
       return session;
     }

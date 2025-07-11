@@ -40,8 +40,8 @@ export default function UserAvatar({ user }: UserAvatarProps) {
 
   const handleUserInfo = () => {
     setIsDropdownOpen(false);
-    // 跳转到用户信息页面
-    window.location.href = '/';
+    // 跳转到用户详情页面
+    window.location.href = '/users/detail';
   };
 
   const handleLogout = async () => {

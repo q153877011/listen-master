@@ -21,6 +21,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "听力测试系统 - Audio Listening Test",
   description: "英语听力练习和测试平台",
+  icons: {
+    icon: '/favicon.svg',
+  },
 };
 
 // 导航栏组件

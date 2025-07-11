@@ -17,7 +17,16 @@ export async function POST(request: NextRequest) {
   try {
     const session = await auth();
     
+    console.log("用户活动 API - Session 信息:", {
+      hasSession: !!session,
+      userId: session?.user?.id,
+      userEmail: session?.user?.email,
+      sessionKeys: session ? Object.keys(session) : [],
+      userKeys: session?.user ? Object.keys(session.user) : []
+    });
+    
     if (!session?.user?.id) {
+      console.log("用户活动 API - 用户未登录");
       return NextResponse.json({ 
         success: false, 
         message: "未登录" 

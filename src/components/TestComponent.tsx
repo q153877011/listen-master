@@ -16,17 +16,17 @@ interface AudioTest {
 }
 
 export default function TestComponent() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const [currentTest, setCurrentTest] = useState<AudioTest | null>(null);
   const [userInputs, setUserInputs] = useState<string[]>([]);
   const [showResults, setShowResults] = useState(false);
-  const [showChinese, setShowChinese] = useState(false);
   const [isCorrect, setIsCorrect] = useState<boolean[]>([]);
   const [isStarted, setIsStarted] = useState(false);
   const [testStartTime, setTestStartTime] = useState<Date | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [audioLoading, setAudioLoading] = useState(false);
   const [audioError, setAudioError] = useState<string>('');
+  const [isChineseRevealed, setIsChineseRevealed] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
 
   useEffect(() => {
@@ -42,7 +42,7 @@ export default function TestComponent() {
       const missingWordsCount = (currentTest.miss_text.match(/\*\*\*/g) || []).length;
       setUserInputs(new Array(missingWordsCount).fill(''));
       setShowResults(false);
-      setShowChinese(false);
+      setIsChineseRevealed(false);
       setIsCorrect([]);
     }
   }, [currentTest]);
@@ -114,28 +114,42 @@ export default function TestComponent() {
     setShowResults(true);
 
     // 记录用户活动
+    console.log("准备记录用户活动:", {
+      hasSession: !!session,
+      userId: session?.user?.id,
+      userEmail: session?.user?.email,
+      isRecording,
+      audioId: currentTest.id
+    });
+    
     if (session?.user?.id && !isRecording) {
       setIsRecording(true);
       try {
         const timeSpent = testStartTime ? Math.floor((Date.now() - testStartTime.getTime()) / 1000) : null;
         const allCorrect = results.every(result => result);
         
+        const requestBody = {
+          audioId: currentTest.id,
+          isCorrect: allCorrect,
+          userAnswer: userInputs.join(' '),
+          correctAnswer: currentTest.original_text,
+          completedAt: new Date().toISOString(),
+          timeSpent: timeSpent,
+        };
+        
+        console.log("发送用户活动数据:", requestBody);
+        
         const response = await fetch('/api/user-activities', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            audioId: currentTest.id,
-            isCorrect: allCorrect,
-            userAnswer: userInputs.join(' '),
-            correctAnswer: currentTest.original_text,
-            completedAt: new Date().toISOString(),
-            timeSpent: timeSpent,
-          }),
+          body: JSON.stringify(requestBody),
         });
 
         const data = await response.json() as ActivityResponse;
+        console.log("用户活动 API 响应:", data);
+        
         if (!data.success) {
           console.error('记录用户活动失败:', data.message);
         } else {
@@ -146,6 +160,10 @@ export default function TestComponent() {
       } finally {
         setIsRecording(false);
       }
+    } else {
+      console.log("跳过用户活动记录:", {
+        reason: !session?.user?.id ? "用户未登录" : "正在记录中"
+      });
     }
   };
 
@@ -154,7 +172,7 @@ export default function TestComponent() {
     setAudioLoading(false);
     setAudioError('');
     setShowResults(false);
-    setShowChinese(false);
+    setIsChineseRevealed(false);
     setIsCorrect([]);
     setUserInputs([]);
     
@@ -184,11 +202,11 @@ export default function TestComponent() {
     let inputIndex = 0;
 
     return (
-      <div className="space-y-6">
+      <div className="space-y-8">
         <audio 
           ref={audioRef} 
           controls 
-          className="w-full mb-4"
+          className="w-full"
           onLoadStart={() => setAudioLoading(true)}
           onCanPlay={() => {
             setAudioLoading(false);
@@ -215,21 +233,21 @@ export default function TestComponent() {
 
         {/* 音频状态显示 */}
         {audioLoading && (
-          <div className="text-center py-2 text-blue-600">
+          <div className="text-center py-4 text-blue-600 my-4">
             正在加载音频文件...
           </div>
         )}
         
         {audioError && (
-          <div className="text-center py-2 text-red-600 bg-red-50 rounded p-2">
+          <div className="text-center py-4 text-red-600 bg-red-50 rounded p-3 my-4">
             {audioError}
-            <div className="text-xs text-gray-500 mt-1">
+            <div className="text-xs text-gray-500 mt-2">
               URL: {currentTest.audio_path}
             </div>
           </div>
         )}
 
-        <div className="space-y-4">
+        <div className="space-y-4 pt-6">
           <div className="flex flex-wrap gap-2 items-center">
             {words.map((word, index) => {
               if (word === '***') {
@@ -267,7 +285,7 @@ export default function TestComponent() {
           </div>
 
           {showResults && (
-            <div className="mt-4 animate-fade-in">
+            <div className="pt-8 animate-fade-in">
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
                 <h3 className="font-semibold mb-2 text-blue-800">答题结果</h3>
                 <div className="flex items-center gap-4 mb-3">
@@ -308,23 +326,27 @@ export default function TestComponent() {
             </div>
           )}
 
-          <div className="mt-4">
-            <Button
-              onClick={() => setShowChinese(!showChinese)}
-              variant="outline"
-              className="mb-2"
-            >
-              {showChinese ? '隐藏中文' : '显示中文'}
-            </Button>
-            {showChinese && (
-              <Card className="p-4 bg-gray-50">
-                <p>{currentTest.chinese}</p>
-              </Card>
-            )}
+          <div className="mt-6">
+            <Card className="p-4 bg-gray-50">
+              <span
+                className={`
+                  inline-block cursor-pointer transition-all duration-300 
+                  ${isChineseRevealed ? '' : 'blur-sm'} 
+                `}
+                style={{
+                  filter: isChineseRevealed ? 'none' : 'blur(4px)',
+                }}
+                onClick={() => setIsChineseRevealed(!isChineseRevealed)}
+                title={isChineseRevealed ? "点击隐藏内容" : "点击查看内容"}
+              >
+                <p className="text-gray-700">{currentTest.chinese}</p>
+              </span>
+            </Card>
           </div>
+
         </div>
 
-        <div className="flex gap-4">
+        <div className="flex gap-4 pt-8">
           <Button 
             onClick={checkAnswers} 
             disabled={showResults || isRecording}
@@ -362,7 +384,7 @@ export default function TestComponent() {
             <li>查看中文翻译辅助理解</li>
             <li>提交答案后查看正确结果</li>
           </ul>
-          {!session?.user && (
+          {status === 'unauthenticated' && (
             <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
               <p className="text-sm text-yellow-800">
                 注意：未登录用户无法记录练习数据，建议先登录以获得完整的练习体验。
@@ -379,7 +401,6 @@ export default function TestComponent() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold mb-6">听力测试</h1>
       {renderTest()}
     </div>
   );

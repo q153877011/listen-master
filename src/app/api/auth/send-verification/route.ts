@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCloudflareContext } from "@opennextjs/cloudflare";
 import crypto from 'crypto';
 import { getOriginFromRequest } from "@/lib/url-utils";
+import { getDatabaseAccess } from "@/lib/db";
 
 interface VerificationResponse {
   success: boolean;
@@ -68,15 +68,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { env } = await getCloudflareContext({ async: true });
+    const db = await getDatabaseAccess();
 
     // 查找用户
-    const { results } = await env.DB
-      .prepare("SELECT id, name, email, email_verified FROM users WHERE email = ?")
-      .bind(email)
-      .all();
+    const userResult = await db.getUserByEmail(email);
 
-    if (results.length === 0) {
+    if (!userResult) {
       return NextResponse.json<VerificationResponse>(
         { success: false, message: "用户不存在" },
         { status: 404 }
@@ -84,7 +81,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate the database result
-    const userResult = results[0];
     if (!isDatabaseUserForVerification(userResult)) {
       console.error("Invalid user data from database:", userResult);
       return NextResponse.json<VerificationResponse>(
@@ -107,22 +103,16 @@ export async function POST(request: NextRequest) {
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24小时后过期
 
     // 更新用户验证令牌
-    await env.DB
-      .prepare(`
-        UPDATE users 
-        SET verification_token = ?, verification_token_expires = ? 
-        WHERE id = ?
-      `)
-      .bind(verificationToken, expiresAt.toISOString(), user.id)
-      .run();
+    await db.updateUserVerificationToken(user.id, verificationToken, expiresAt.toISOString());
 
     // 发送验证邮件
     const origin = getOriginFromRequest(request);
     const verificationUrl = `${origin}/api/auth/verify-email?token=${verificationToken}`;
     console.log('Verification URL:', verificationUrl);
 
+    const envVars = await db.getEnvironmentVariables();
     const emailPayload = {
-      from: env.AUTH_EMAIL_FROM,
+      from: envVars.AUTH_EMAIL_FROM,
       to: email,
       subject: '验证您的邮箱地址',
       html: `
@@ -151,7 +141,7 @@ export async function POST(request: NextRequest) {
     const emailResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${env.AUTH_RESEND_KEY}`,
+        'Authorization': `Bearer ${envVars.AUTH_RESEND_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(emailPayload)

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCloudflareContext } from "@opennextjs/cloudflare";
 import bcrypt from "bcryptjs";
+import { getDatabaseAccess } from "@/lib/db";
 
 interface LoginRequest {
   email: string;
@@ -80,15 +80,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const db = (await getCloudflareContext({ async: true })).env.DB;
+    const db = await getDatabaseAccess();
 
     // 查找用户
-    const { results } = await db
-      .prepare("SELECT * FROM users WHERE email = ?")
-      .bind(email)
-      .all();
+    const userResult = await db.getUserByEmail(email);
 
-    if (results.length === 0) {
+    if (!userResult) {
       return NextResponse.json<LoginResponse>(
         { success: false, message: "用户不存在" },
         { status: 401 }
@@ -96,7 +93,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate the database result
-    const userResult = results[0];
     if (!isDatabaseUser(userResult)) {
       console.error("Invalid user data from database:", userResult);
       return NextResponse.json<LoginResponse>(

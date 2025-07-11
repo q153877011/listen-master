@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { getOriginFromRequest } from "@/lib/url-utils";
+import { getDatabaseAccess } from "@/lib/db";
 
 interface VerifyEmailResponse {
   success: boolean;
@@ -33,7 +33,7 @@ function isDatabaseUserForEmailVerification(obj: unknown): obj is DatabaseUserFo
 
 export async function GET(request: NextRequest) {
   try {
-    const { env } = await getCloudflareContext({ async: true });
+    const db = await getDatabaseAccess();
     const { searchParams } = new URL(request.url);
     const token = searchParams.get('token');
 
@@ -55,18 +55,11 @@ export async function GET(request: NextRequest) {
     console.log('Verifying token:', token);
 
     // 查找用户
-    const { results } = await env.DB
-      .prepare(`
-        SELECT id, email, verification_token, verification_token_expires, email_verified
-        FROM users 
-        WHERE verification_token = ?
-      `)
-      .bind(token)
-      .all();
+    const userResult = await db.getUserByVerificationToken(token);
 
-    console.log('Query results:', results);
+    console.log('Query results:', userResult);
 
-    if (results.length === 0) {
+    if (!userResult) {
       return NextResponse.json<VerifyEmailResponse>(
         { success: false, message: "验证令牌无效" },
         { status: 400 }
@@ -74,7 +67,6 @@ export async function GET(request: NextRequest) {
     }
 
     // Validate the database result
-    const userResult = results[0];
     if (!isDatabaseUserForEmailVerification(userResult)) {
       console.error("Invalid user data from database:", userResult);
       return NextResponse.json<VerifyEmailResponse>(
@@ -121,17 +113,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 更新用户验证状态
-    await env.DB
-      .prepare(`
-        UPDATE users 
-        SET email_verified = 1, 
-            emailVerified = datetime('now'),
-            verification_token = NULL, 
-            verification_token_expires = NULL 
-        WHERE id = ?
-      `)
-      .bind(user.id)
-      .run();
+    await db.updateUserVerification(user.id);
 
     // 返回带有延迟跳转的HTML页面
     const origin = getOriginFromRequest(request);
